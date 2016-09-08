@@ -14,137 +14,167 @@ function initDB(db) {
         db.run("CREATE TABLE users (USERID INTEGER PRIMARY KEY NOT NULL, NAME TEXT NOT NULL)", function (err) { if (err) { } });
     });
 }
-//function selectNextUserKey() {
-//    db.serialize(function () {
-//        var count = 0;
-//    db.each("SELECT MAX(USERID) AS LASTKEY FROM users", function (err, row) {
-//        if (err) {
-//            console.log("ERR");
-//            return 0;
-//        }
-//       console.log(count++);
-//       if (Number.isNaN(row.LASTKEY))
-//        {
-//             console.log("NAN");
-//           return 0;
-//        }
-//            console.log("REAL");
-//        return row.LASTKEY;
-//    });
-//
-//    });
 
-//}
 function insertUser(uid, uname) {
-    db.serialize(function (err) {
+    return new Promise(function(resolve, reject) {
+        db.serialize(function (err) {
         //     var key = selectNextUserKey() + 1;
         var values = uid + ', \'' + uname + '\'';
         var stmt = db.prepare("INSERT INTO users (USERID, NAME) VALUES (" + values + ")");
         stmt.run();
         if (err) {
-            console.log(err);
+            reject(err);
         }
         stmt.finalize();
+        if (err) {
+            reject(err);
+        }
+        resolve();        
+    });
     });
 }
 function updateUser(uid, name) {
+    return new Promise(function(resolve, reject) {
     db.serialize(function (err) {
         var command = "UPDATE users SET NAME=\'" + name + "\' WHERE USERID=" + uid;
         var stmt = db.prepare(command);
         stmt.run();
+        if (err) {
+            reject(err);
+        }
         stmt.finalize();
+        if (err) {
+            reject(err);
+        }
+        resolve();
+    });
     });
 }
 function deleteUser(uid) {
-    db.serialize(function (err) {
+     return new Promise(function(resolve, reject) {
+   db.serialize(function (err) {
         var command = "DELETE FROM users WHERE USERID=" + uid;
         var stmt = db.prepare(command);
         stmt.run();
         if (err) {
-            console.log(err);
+            reject(err);
         }
         stmt.finalize();
         if (err) {
-            console.log(err);
+            reject(err);
         }
+        resolve();
+    });
     });
 }
 function selectAllUsers() {
-    db.serialize(function (err) {
+     return new Promise(function(resolve, reject) {
+   db.serialize(function (err) {
         var output = new Array();
         db.all("SELECT * FROM users", function (err, row) {
-            if (err) {
-                console.log(err);
-            }output.push(row);
+        if (err) {
+            reject(err);
+        }
             console.log(row.USERID + ": " + row.NAME);
         });
-        return output;
+        resolve();
+    });
     });
 }
 function selectUser(uid) {
-    db.serialize(function (err) {
+     return new Promise(function(resolve, reject) {
+   db.serialize(function (err) {
         var count = 0;
         db.each("SELECT * FROM users WHERE USERID=" + uid, function (err, row) {
-            if (err) {
-                console.log(err);
-            }
-            console.log(count + ':' + row.USERID + ": " + row.NAME);
-            count++;
+        if (err) {
+            reject(err);
+        }
+//            console.log(count + ':' + row.USERID + ": " + row.NAME);
+ //           count++;
         });
+         resolve();
+   });
     });
 }
 function insertTweet(key, uid, msg) {
-    db.serialize(function (err) {
+     return new Promise(function(resolve, reject) {
+   db.serialize(function (err) {
 
         var ts = new Date();
         var values = key + ', ' + uid + ', \'' + msg + '\', \'' + ts + '\'';
         var stmt = db.prepare("INSERT INTO tweets (TID, AUTHOR,MESSAGE,TS) VALUES (" + values + ")");
         stmt.run();
-        if (err)
-            console.log(err);
+        if (err) {
+            reject(err);
+        }
         stmt.finalize();
-        if (err)
-            console.log(err);
+        if (err) {
+            reject(err);
+        }
+        resolve();
+    });
     });
 }
 function updateTweet(tid, message) {
+    return new Promise(function(resolve, reject) {
     db.serialize(function (err) {
 
         var command = "UPDATE tweets SET MESSAGE=\'" + message + "\' WHERE TID=" + tid;
         var stmt = db.prepare(command);
         stmt.run();
+        if (err) {
+            reject(err);
+        }
         stmt.finalize();
+        if (err) {
+            reject(err);
+        }
+        resolve();
+    });
     });
 }
 function deleteTweet(tid) {
+    return new Promise(function(resolve, reject) {
     db.serialize(function (err) {
         var command = "DELETE FROM tweets WHERE TID=" + tid;
         var stmt = db.prepare(command);
         stmt.run();
-        if (err) { }
+        if (err) {
+            reject(err);
+        }
         stmt.finalize();
-        if (err) { }
+         if (err) {
+            reject(err);
+        }
+        resolve();
+    });
     });
 }
 function selectAllTweets() {
+    return new Promise(function(resolve, reject) {
     db.serialize(function (err) {
         db.each("SELECT * FROM tweets", function (err, row) {
-            if (err) {
-                console.log(err);
-                throw err;
-            }
+         if (err) {
+            reject(err);
+        }
             console.log(row.TID + "." + row.AUTHOR + ": " + row.MESSAGE);
         });
+        resolve();
+    });
     });
 }
 function selectTweetsFor(uid) {
-    db.serialize(function (err) {
+     return new Promise(function(resolve, reject) {
+   db.serialize(function (err) {
         db.each("SELECT * FROM tweets WHERE AUTHOR=" + uid, function (err, row) {
-            if (err) {
-                console.log(err);
-            }
+         if (err) {
+            reject(err);
+        }
             console.log(row.TID + "," + row.AUTHOR + ": " + row.MESSAGE + " " + row.TS);
+            resolve();
         });
+        resolve();
+    });
     });
 }
 initDB(db);
