@@ -1,0 +1,25 @@
+{
+  "name": "twitty",
+  "version": "1.0.0",
+  "description": "Twitter Clone",
+  "main": "app.js",
+  "dependencies": {
+    "express": "^4.14.0",
+    "mocha": "^3.0.2",
+    "sqlite3": "^3.1.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MusicBuilder/twitty.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MusicBuilder/twitty/issues"
+  },
+  "homepage": "https://github.com/MusicBuilder/twitty#readme"
+}
