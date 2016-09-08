@@ -15,7 +15,12 @@ function initDB(db) {
     });
 }
 
-function insertUser(uid, uname) {
+exports.insertUser = insertUser;
+exports.selectAllUsers = selectAllUsers;
+exports.updateUser = updateUser;
+exports.deleteUser = deleteUser;
+
+function insertUser (uid, uname) {
     return new Promise(function(resolve, reject) {
         db.serialize(function (err) {
         //     var key = selectNextUserKey() + 1;
@@ -33,54 +38,61 @@ function insertUser(uid, uname) {
     });
     });
 }
+
 function updateUser(uid, name) {
-    return new Promise(function(resolve, reject) {
-    db.serialize(function (err) {
-        var command = "UPDATE users SET NAME=\'" + name + "\' WHERE USERID=" + uid;
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        resolve();
-    });
-    });
-}
-function deleteUser(uid) {
-     return new Promise(function(resolve, reject) {
-   db.serialize(function (err) {
-        var command = "DELETE FROM users WHERE USERID=" + uid;
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        resolve();
-    });
-    });
-}
-function selectAllUsers() {
-     return new Promise(function(resolve, reject) {
-   db.serialize(function (err) {
-        var output = new Array();
-        db.all("SELECT * FROM users", function (err, row) {
-        if (err) {
-            reject(err);
-        }
-            console.log(row.USERID + ": " + row.NAME);
+    return new Promise(
+        (resolve, reject) => {
+            db.serialize(function (err) {
+                var command = "UPDATE users SET NAME=\'" + name + "\' WHERE USERID=" + uid;
+                var stmt = db.prepare(command);
+                stmt.run();
+                
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                
+                stmt.finalize();
+
+                resolve();
+            });
         });
-        resolve();
-    });
+}
+
+function deleteUser(uid) {
+    return new Promise(
+        function(resolve, reject) {
+            db.serialize(function (err) {
+                var command = "DELETE FROM users WHERE USERID=" + uid;
+                var stmt = db.prepare(command);
+                stmt.run();
+                
+                if (err) {
+                    reject(err);
+                    return;
+                }
+        
+                stmt.finalize();
+                resolve();
+            });
+        });
+}
+
+function selectAllUsers() {
+    return new Promise((resolve, reject) => {
+        db.serialize((err) => {
+            db.all("SELECT * FROM users", (err, rows) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+
+                resolve(rows);
+            });
+        });
     });
 }
+
 function selectUser(uid) {
      return new Promise(function(resolve, reject) {
    db.serialize(function (err) {
