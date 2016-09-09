@@ -85,6 +85,7 @@ function insertUser(uid, uname, pw, pro)
             resolve();
         });
     });
+    return p;
 }
 function asMyQuote(input)
 {
@@ -117,6 +118,7 @@ function updateUser(uid, name, pw, pro)
             resolve();
         });
     });
+    return p;
 }
 function updateUserName(uid, name) 
 {
@@ -143,6 +145,7 @@ function updateUserName(uid, name)
             resolve();
         });
     });
+    return p;
 }
 function updateUserPwd(uid, name) 
 {
@@ -167,6 +170,7 @@ function updateUserPwd(uid, name)
             resolve();
         });
     });
+    return p;
 }
 function updateUserProfile(uid, name) 
 {
@@ -193,6 +197,7 @@ function updateUserProfile(uid, name)
             resolve();
         });
     });
+    return p;
 }
 function deleteUser(uid) 
 {
@@ -218,6 +223,7 @@ function deleteUser(uid)
             resolve();
         });
     });
+    return p;
 }
 function selectAllUsers() 
 {
@@ -239,6 +245,7 @@ function selectAllUsers()
 
         });
     });
+    return p;
 }
 function selectUser(uid) 
 {
@@ -316,6 +323,7 @@ function insertTweet(tid, uid, msg)
             resolve();
         });
     });
+    return p;
 }
 function insertAltTweet(tid, uid, msg) 
 {
@@ -344,6 +352,7 @@ function insertAltTweet(tid, uid, msg)
             resolve();
         });
     });
+    return p;
 }
 function updateTweet(tid, message) 
 {
@@ -368,6 +377,7 @@ function updateTweet(tid, message)
             resolve();
         });
     });
+    return p;
 }
 function deleteTweet(tid) 
 {
@@ -392,6 +402,7 @@ function deleteTweet(tid)
             resolve();
         });
     });
+    return p;
 }
 function selectAllTweets() 
 {
@@ -436,9 +447,7 @@ function selectAllTweets()
             return {};
         }
     );
-
     return p;
-
 }
 function selectTweetsFor(uid) 
 {
@@ -484,7 +493,6 @@ function selectTweetsFor(uid)
             return {};
         }
     );
-
     return p;
 }
 
@@ -515,6 +523,7 @@ function insertFollowing(lead, follow)
             resolve();
         });
     });
+    return p;
 }
 function deleteFollowing(lead, follow) 
 {
@@ -541,6 +550,7 @@ function deleteFollowing(lead, follow)
             resolve();
         });
     });
+    return p;
 }
 function selectFollowing(follow) 
 {
@@ -584,7 +594,6 @@ function selectFollowing(follow)
             return {};
         }
     );
-
     return p;
 }
 function selectFollowed(leader) 
@@ -630,7 +639,6 @@ function selectFollowed(leader)
             return {};
         }
     );
-
     return p;
 }
 function insertLike(tweet, uid) 
@@ -658,6 +666,7 @@ function insertLike(tweet, uid)
             resolve();
         });
     });
+    return p;
 }
 function deleteLike(tweet, uid) 
 {
@@ -683,6 +692,7 @@ function deleteLike(tweet, uid)
             resolve();
         });
     });
+    return p;
 }
 function selectILike(uid) 
 {
@@ -727,7 +737,6 @@ function selectILike(uid)
             return {};
         }
     );
-
     return p;
 }
 function selectLikedBy(tweet) 
@@ -772,8 +781,7 @@ function selectLikedBy(tweet)
             return {};
         }
     );
-
-    return p;;
+    return p;
 }
 initDB(db);
 
