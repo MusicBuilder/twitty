@@ -32,7 +32,9 @@ var tweet = {
 
 var user = {
     userid: '',
-    name: ''
+    name: '',
+    password: '',
+    profile: ''
 };
 
 function initDB(db) {
@@ -268,6 +270,8 @@ function selectAllUsers()
 
                 aUser.userid = row.USERID;
                 aUser.name = row.NAME;
+                aUser.password = row.PASSWORD;
+                aUser.profile = row.PROFILE;
 
                 allUsers[aUser.userid] = aUser;
             }
@@ -290,7 +294,7 @@ function selectUser(uid)
         db.serialize(function (err) 
         {
             var count = 0;
-            var command = "SELECT * FROM users WHERE USERID=" + quid;
+            var command = "SELECT * FROM users WHERE USERID = " + quid;
             db.each(command, function (err, row) 
             {
                 if (err)
@@ -302,27 +306,18 @@ function selectUser(uid)
             });
         });
     }).then(
-        (users) => {
-            // Process them.
-            var outputData = {};
-
-            for (thisTweet of users) {
-                var aTweet = Object.create(tweet);
-
-                aTweet.author = thisTweet.AUTHOR;
-                aTweet.message = thisTweet.MESSAGE;
-                aTweet.tid = thisTweet.TID;
-                aTweet.ts = thisTweet.TS;
-
-                outputData[aTweet.message] = aTweet;
-                console.log('The output of row:  ' + outputData.AUTHOR);
-            }
-
-            // console.log(outputData);       
-            return outputData;
+        (user) => {
+            // Process single user.
+            var aUser = Object.create(user);
+            aUser.userid = user.USERID
+            aUser.name = user.NAME;
+            aUser.password = user.PASSWORD;
+            aUser.profile = user.PROFILE;
+       
+            return aUser;
         },
         (err) => {
-            console.log('Error getting tweets');
+            console.log('Error getting user');
             return {};
         }
     );
