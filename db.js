@@ -23,6 +23,17 @@ exports.deleteLike = deleteLike;
 exports.selectILike = selectILike;
 exports.selectLikedBy = selectLikedBy;
 
+var tweet = {
+    author: '',
+    message: '',
+    tid: '',
+    ts: ''
+};
+
+var user = {
+    userid: '',
+    name: ''
+};
 
 function initDB(db) {
     db.serialize(function () {
@@ -227,24 +238,47 @@ function deleteUser(uid)
 }
 function selectAllUsers() 
 {
+    var allUsers = {};
     var p;
+
     p =  new Promise(function (resolve, reject) 
     {
         db.serialize(function (err) 
         {
             var command = "SELECT * FROM users";
-            db.all(command, function (err, row) 
+
+            db.all(command, function (err, rows) 
             {
                 if (err) 
                 {
                     reject(err);
+                    return;
                 }
-                 console.log(command);
-                resolve();
+                
+                console.log(rows);
+                resolve(rows);
            });
 
         });
-    });
+    }).then(
+        (rows) => {
+
+            for (row of rows) {
+                var aUser = Object.create(user);
+
+                aUser.userid = row.USERID;
+                aUser.name = row.NAME;
+
+                allUsers[aUser.userid] = aUser;
+            }
+
+            return allUsers;
+        },
+        (err) => {
+            return {};
+        }
+    );
+
     return p;
 }
 function selectUser(uid) 
