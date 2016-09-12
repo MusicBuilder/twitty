@@ -23,6 +23,19 @@ exports.deleteLike = deleteLike;
 exports.selectILike = selectILike;
 exports.selectLikedBy = selectLikedBy;
 
+var tweet = {
+    author: '',
+    message: '',
+    tid: '',
+    ts: ''
+};
+
+var user = {
+    userid: '',
+    name: '',
+    password: '',
+    profile: ''
+};
 
 function initDB(db) {
     db.serialize(function () {
@@ -228,25 +241,31 @@ function deleteUser(uid)
 }
 function selectAllUsers() 
 {
+    var allUsers = {};
     var p;
+
     p =  new Promise(function (resolve, reject) 
     {
         db.serialize(function (err) 
         {
             var command = "SELECT * FROM users";
-            db.all(command, function (err, row) 
+
+            db.all(command, function (err, rows) 
             {
                 if (err) 
                 {
                     reject(err);
+                    return;
                 }
-                 console.log(command);
-                resolve();
+                
+                console.log(rows);
+                resolve(rows);
            });
 
         });
     }).then(
         (rows) => {
+<<<<<<< HEAD
             // Process them.
             var outputData = {};
             var count = 0;
@@ -269,6 +288,27 @@ function selectAllUsers()
             return {};
         }
     );
+=======
+
+            for (row of rows) {
+                var aUser = Object.create(user);
+
+                aUser.userid = row.USERID;
+                aUser.name = row.NAME;
+                aUser.password = row.PASSWORD;
+                aUser.profile = row.PROFILE;
+
+                allUsers[aUser.userid] = aUser;
+            }
+
+            return allUsers;
+        },
+        (err) => {
+            return {};
+        }
+    );
+
+>>>>>>> 9ea6c2f623e0b999e161bc2aed3b6070f9580b16
     return p;
 }
 function selectUser(uid) 
@@ -280,7 +320,7 @@ function selectUser(uid)
         db.serialize(function (err) 
         {
             var count = 0;
-            var command = "SELECT * FROM users WHERE USERID=" + quid;
+            var command = "SELECT * FROM users WHERE USERID = " + quid;
             db.each(command, function (err, row) 
             {
                 if (err)
@@ -292,6 +332,7 @@ function selectUser(uid)
             });
         });
     }).then(
+<<<<<<< HEAD
         (rows) => {
             // Process them.
             var outputData = {};
@@ -313,6 +354,20 @@ function selectUser(uid)
         },
         (err) => {
             console.log('Error getting users');
+=======
+        (user) => {
+            // Process single user.
+            var aUser = Object.create(user);
+            aUser.userid = user.USERID
+            aUser.name = user.NAME;
+            aUser.password = user.PASSWORD;
+            aUser.profile = user.PROFILE;
+       
+            return aUser;
+        },
+        (err) => {
+            console.log('Error getting user');
+>>>>>>> 9ea6c2f623e0b999e161bc2aed3b6070f9580b16
             return {};
         }
     );
