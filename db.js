@@ -54,7 +54,8 @@ function initDB(db) {
         db.run("DROP TABLE likeRel", function (err) { if (err) { } }); //x
         db.run("CREATE TABLE likeRel \
         (TWEET_ID INT NOT NULL, \
-        UID INT NOT NULL)", function (err) { if (err) { } });
+        UID INT NOT NULL, \
+        TS TEXT NOT NULL)", function (err) { if (err) { } });
     });
 }
 
@@ -244,7 +245,30 @@ function selectAllUsers()
            });
 
         });
-    });
+    }).then(
+        (rows) => {
+            // Process them.
+            var outputData = {};
+            var count = 0;
+            for (thisROW of rows) {
+                var aUser = Object.create(user);
+
+                aUser.userid = thisROW.USERID;
+                aUser.name = thisROW.NAME;
+                aUser.password = thisROW.PASSWORD;
+                aUser.profile = thisROW.PROFILE;
+                outputData[count] = aUser;
+                console.log('The output of row:  ' + outputData.count);
+            }
+
+            // console.log(outputData);       
+            return outputData;
+        },
+        (err) => {
+            console.log('Error getting users');
+            return {};
+        }
+    );
     return p;
 }
 function selectUser(uid) 
@@ -268,27 +292,27 @@ function selectUser(uid)
             });
         });
     }).then(
-        (users) => {
+        (rows) => {
             // Process them.
             var outputData = {};
+            var count = 0;
+            for (thisROW of rows) {
+                var aUser = Object.create(user);
 
-            for (thisTweet of users) {
-                var aTweet = Object.create(tweet);
+                aUser.userid = thisROW.USERID;
+                aUser.name = thisROW.NAME;
+                aUser.password = thisROW.PASSWORD;
+                aUser.profile = thisROW.PROFILE;
 
-                aTweet.author = thisTweet.AUTHOR;
-                aTweet.message = thisTweet.MESSAGE;
-                aTweet.tid = thisTweet.TID;
-                aTweet.ts = thisTweet.TS;
-
-                outputData[aTweet.message] = aTweet;
-                console.log('The output of row:  ' + outputData.AUTHOR);
+                outputData[count] = aUser;
+                console.log('The output of row:  ' + outputData.count);
             }
 
             // console.log(outputData);       
             return outputData;
         },
         (err) => {
-            console.log('Error getting tweets');
+            console.log('Error getting users');
             return {};
         }
     );
@@ -361,6 +385,7 @@ function updateTweet(tid, message)
     {
         db.serialize(function (err) 
         {
+            var ts = asMyQuote(new Date());
             var command = "UPDATE tweets SET MESSAGE=\'" + message + "\' WHERE TID=" + tid;
             var stmt = db.prepare(command);
             stmt.run();
@@ -646,11 +671,12 @@ function insertLike(tweet, uid)
     var p;
     p =  new Promise(function (resolve, reject) 
     {
+        var ts = asMyQuote(new Date());
         var quid = asMyQuote(uid);
         db.serialize(function (err) 
         {
-            var values = tweet + ', ' + quid;
-            var command = "INSERT INTO likeRel (TWEET_ID, UID) VALUES (" + values + ")";
+            var values = tweet + ', ' + quid + ', ' + ts;
+            var command = "INSERT INTO likeRel (TWEET_ID, UID, TS) VALUES (" + values + ")";
             var stmt = db.prepare(command);
             stmt.run();
             if (err) 
@@ -719,12 +745,13 @@ function selectILike(uid)
             var outputData = {};
             var count = 0;
             for (thisRow of rows) {
-                var aFollow = Object.create(follow);
+                var aLikedTweet = Object.create(likedTweet);
 
-                aFollow.tweetid = thisRow.TWEET_ID;
-                aFollow.userid = thisRow.UID;
+                aLikedTweet.tweetid = thisRow.TWEET_ID;
+                aLikedTweet.userid = thisRow.UID;
+                aLikedTweet.timeStamp = thisRow.TS;
 
-                outputData[count] = aFollow;
+                outputData[count] = aLikedTweet;
                 count++;
                // console.log('The output of row:  ' + outputData.AUTHOR);
             }
@@ -763,12 +790,13 @@ function selectLikedBy(tweet)
             var outputData = {};
             var count = 0;
             for (thisRow of rows) {
-                var aFollow = Object.create(follow);
+                var aLikedTweet = Object.create(likedTweet);
 
-                aFollow.tweetid = thisRow.TWEET_ID;
-                aFollow.userid = thisRow.UID;
+                aLikedTweet.tweetid = thisRow.TWEET_ID;
+                aLikedTweet.userid = thisRow.UID;
+                aLikedTweet.timeStamp = thisRow.TS;
 
-                outputData[count] = aFollow;
+                outputData[count] = aLikedTweet;
                 count++;
                // console.log('The output of row:  ' + outputData.AUTHOR);
             }
@@ -817,7 +845,7 @@ function debugit() {
     updateUserPwd('billr', "inconceivable");
     updateUserProfile('billr', "Butterflies and Rainbows");
     selectUser("billR");
-    insertFollowing("billr","opreh");
+    insertFollowing("billr","oprah");
     insertFollowing("billr","brianr");
     insertFollowing("billr","lewisE");
     selectFollowed("billr");
@@ -828,6 +856,7 @@ function debugit() {
     insertLike(1,"brianr");
     insertLike(1,"lewisE");
     selectILike("brianr");
+    
     selectLikedBy(1);
 }
 debugit();
