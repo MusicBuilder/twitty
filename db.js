@@ -22,6 +22,13 @@ exports.insertLike = insertLike;
 exports.deleteLike = deleteLike;
 exports.selectILike = selectILike;
 exports.selectLikedBy = selectLikedBy;
+exports.selectWhoLikesTweet = selectWhoLikesTweet;
+exports.selectTweetsLikedBy = selectTweetsLikedBy;
+exports.insertReply = insertReply;
+exports.updateReply = updateReply;
+exports.deleteReply = deleteReply;
+exports.selectRepliesForTweet = selectRepliesForTweet;
+exports.selectRepliesForUser = selectRepliesForUser;
 
 var tweet = {
     author: '',
@@ -78,8 +85,8 @@ function initDB(db) {
         console.log("create replies table");
         db.run("CREATE TABLE replies \
         (REPID INTEGER PRIMARY KEY NOT NULL, \
-        FOREIGN KEY (TID) REFERENCES tweets(TID), \
-        FOREIGN KEY (AUTHOR) REFERENCES users(UID),\
+        TID INT NOT NULL, \
+        AUTHOR TEXT NOT NULL,\
         MESSAGE CHAR(140) NOT NULL,\
         TS TEXT NOT NULL)", function (err) { if (err) {} });
     });
@@ -88,16 +95,16 @@ function initDB(db) {
         db.run("DROP TABLE followRel", function (err) { if (err) { } }); //x
          console.log("create followRel table");
        db.run("CREATE TABLE followRel \
-        (FOREIGN KEY (LEADER) REFERENCES users(UID), \
-        FOREIGN KEY (FOLLOWER) REFERENCES users(UID))", function (err) { if (err) {  } });
+        (LEADER TEXT NOT NULL, \
+        FOLLOWER TEXT NOT NULL)", function (err) { if (err) {  } });
     });
     db.serialize(function () {
 
         db.run("DROP TABLE likeRel", function (err) { if (err) { } }); //x
         console.log("create likeRel table");
         db.run("CREATE TABLE likeRel \
-        (FOREIGN KEY (TWEET_ID) REFERENCES users(TID), \
-        FOREIGN KEY (UID) REFERENCES users(UID), \
+        (TWEET_ID TEXT NOT NULL, \
+        UID TEXT NOT NULL, \
         TS TEXT NOT NULL)", function (err) { if (err) {} });
     });
  
@@ -483,11 +490,174 @@ function selectTweetsFor(uid) {
 }
 
 // replies table functions
-// insert
-// update
+ // insert
+ function insertReply(tid, uid, msg)
+ {
+     var p;
+    p = new Promise(function (resolve, reject) {
+    db.serialize(function () {
+        var quid = asMyQuote(uid);
+        var qmsg = asMyQuote(msg);
+
+        var ts = asMyQuote(new Date());
+        var values = tid + ', ' + quid + ',' + qmsg + ', ' + ts;
+        var stmt = db.prepare("INSERT INTO replies (TID, AUTHOR,MESSAGE,TS) VALUES (" + values + ")");
+        stmt.run();
+        if (err) {
+            reject(err);
+        }
+        stmt.finalize();
+        if (err) {
+            reject(err);
+        }
+        console.log(values);
+        resolve();
+    });
+    });
+    return p;
+ }
+ // update
+ function updateReply(repid, msg)
+ {
+    var p;
+    p = new Promise(function (resolve, reject) {
+    db.serialize(function () {
+        var ts = asMyQuote(new Date());
+        var command = "UPDATE replies SET MESSAGE=\'" + message + "\' WHERE REPID=" + repid ;
+        var stmt = db.prepare(command);
+        stmt.run();
+        if (err) {
+            reject(err);
+        }
+        stmt.finalize();
+        if (err) {
+            reject(err);
+        }
+        console.log(command);
+        resolve();
+    });
+    });
+    return p;
+
+ }
 // delete
+ function deleteReply(repid)
+ {
+    var p;
+    p = new Promise(function (resolve, reject) {
+    db.serialize(function () {
+
+        var command = "DELETE FROM replies WHERE REPID=" + repid;
+        var stmt = db.prepare(command);
+        stmt.run();
+        if (err) {
+            reject(err);
+        }
+        stmt.finalize();
+        if (err) {
+            reject(err);
+        }
+        console.log(command);
+        resolve();
+    });
+    });
+    return p;
+     
+ }
 // select all for tweet id
+ function selectRepliesForTweet(tid)
+ {
+   var p;
+    p = new Promise(function (resolve, reject) {
+           db.serialize(function () {
+
+            var command = "SELECT * FROM replies WHERE TID=" + tid;
+            db.all(command, function (err, row) {
+                if (err) {
+                    reject(err);
+                }
+                console.log(command);
+                resolve(row);
+            });
+        });
+
+    }).then(
+        (rows) => {
+            // Process them.
+            var outputData = {};
+            var count = 0;
+            for (thisRow of rows) {
+                var aReply = Object.create(reply);
+
+                aReply.original = thisRow.TID;
+                aReply.tid = thisRow.REPID;
+                aReply.message = thisRow.MESSAGE;
+                aReply.author = thisRow.AUTHOR;
+                aReply.ts = thisRow.TS;
+
+                outputData[count] = aReply;
+                console.log('The output of row:  ' + outputData[count].author + ": " + outputData[count].message);
+                count++;
+            }
+
+            // console.log(outputData);       
+            return outputData;
+        },
+        (err) => {
+            console.log('Error getting tweets');
+            return {};
+        }
+        );
+    return p;
+     
+ }
 // select all for user id
+ function selectRepliesForUser(uid)
+ {
+   var p;
+    p = new Promise(function (resolve, reject) {
+           db.serialize(function () {
+            var quid = asMyQuote(uid);
+            var command = "SELECT * FROM replies WHERE AUTHOR=" + quid;
+            db.all(command, function (err, row) {
+                if (err) {
+                    reject(err);
+                }
+                console.log(command);
+                resolve(row);
+            });
+        });
+
+    }).then(
+        (rows) => {
+            // Process them.
+            var outputData = {};
+            var count = 0;
+            for (thisRow of rows) {
+                var aReply = Object.create(reply);
+
+                aReply.original = thisRow.TID;
+                aReply.tid = thisRow.REPID;
+                aReply.message = thisRow.MESSAGE;
+                aReply.author = thisRow.AUTHOR;
+                aReply.ts = thisRow.TS;
+
+                outputData[count] = aReply;
+                console.log('The output of row:  ' + outputData[count].author + ": " + outputData[count].message);
+                count++;
+            }
+
+            // console.log(outputData);       
+            return outputData;
+        },
+        (err) => {
+            console.log('Error getting tweets');
+            return {};
+        }
+        );
+    return p;
+ 
+ }
 
 // followRel Table functions
 function insertFollowing(lead, follow) {
@@ -748,7 +918,8 @@ function selectLikedBy(tweet) {
 // JOIN functions
 function selectTweetsLikedBy(uid) {
     var p = new Promise(function (resolve, reject) {
-        var command = "SELECT * FROM likeRel, tweets WHERE likeRel.TWEET_ID = " + tweet + " AND tweets.TID = " + tweet;
+        var quid = asMyQuote(uid);
+        var command = "SELECT * FROM likeRel, tweets WHERE likeRel.UID = " + quid + " AND  likeRel.TWEET_ID = tweets.TID";
         db.all(command, function (err, row) {
             if (err) {
                 reject(err);
@@ -760,16 +931,18 @@ function selectTweetsLikedBy(uid) {
     }).then(
         (rows) => {
             // Process them.
+            console.log("row count = " + rows.length);
             var outputData = {};
             var count = 0;
             for (thisRow of rows) {
                 var aTweet = Object.create(tweet);
-                aTweet.tid = thisRow.tweets.TID;
-                aTweet.author = thisRow.tweets.AUTHOR;
-                aTweet.message = thisRow.tweets.MESSAGE;
-                aTweet.ts = thisRow.tweets.TS;
+                aTweet.tid = thisRow.TID;
+                aTweet.author = thisRow.AUTHOR;
+                aTweet.message = thisRow.MESSAGE;
+                aTweet.ts = thisRow.TS;
 
                 outputData[count] = aTweet;
+                console.log(outputData[count].author + ": " + outputData[count].message);
                 count++;
             }
             return outputData;
@@ -781,7 +954,41 @@ function selectTweetsLikedBy(uid) {
     return p;
 }
 function selectWhoLikesTweet(tid) {
+    var p = new Promise(function (resolve, reject) {
+        var qtid = asMyQuote(tid);
+        var command = "SELECT * FROM likeRel, users WHERE likeRel.TWEET_ID = " + qtid + " AND likeRel.UID = users.USERID";
+        db.all(command, function (err, row) {
+            if (err) {
+                reject(err);
+            }
+            console.log(command);
+            resolve(row);
+        });
 
+    }).then(
+        (rows) => {
+            // Process them.
+            console.log("row count = " + rows.length);
+            var outputData = {};
+            var count = 0;
+            for (thisRow of rows) {
+                var aUser = Object.create(tweet);
+                aUser.userid = thisRow.USERID;
+                aUser.name = thisRow.NAME;
+                aUser.password = thisRow.PASSWORD;
+                aUser.profile = thisRow.PROFILE;
+
+                outputData[count] = aUser;
+                console.log(outputData[count].userid + ": " + outputData[count].name);
+                count++;
+            }
+            return outputData;
+        },
+        (err) => {
+            console.log('Error getting liked tweets');
+            return {};
+        });
+    return p;
 }
 
 initDB(db);
@@ -818,7 +1025,7 @@ function debugit() {
     updateUserPwd('billr', "inconceivable");
     updateUserProfile('billr', "Butterflies and Rainbows");
     selectUser("billR");
-/*    insertFollowing("billr", "oprah");
+    insertFollowing("billr", "oprah");
     insertFollowing("billr", "brianr");
     insertFollowing("billr", "lewisE");
     selectFollowed("billr");
@@ -831,7 +1038,13 @@ function debugit() {
     selectILike("brianr");
 
     selectLikedBy(1);
- //   selectTweetsLikedBy("brianr");
- */
+    selectTweetsLikedBy("brianr");
+    selectWhoLikesTweet(1);
+    insertReply(1,"billr", "You are wrong");
+    insertReply(1,"lewisE", "You are all wrong");
+    insertReply(1,"oprah", "Dr Phil is a fake");
+    insertReply(1,"billr", "Youre wrong");
+    selectRepliesForTweet(1);
+    selectRepliesForUser("billr");
 }
 debugit();
