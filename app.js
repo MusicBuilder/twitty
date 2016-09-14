@@ -53,6 +53,19 @@ app.get('/feed/:id', function(req, res) {
     );
 });
 
+app.get('/replies/:tid', (req, res) => {
+    var p = db.selectRepliesForTweet(req.params.tid);
+
+    p.then(
+        (data) => {
+            res.status(200).send(data);
+        },
+        (err) => {
+            res.status(404).send('failed to retrive replies');
+        }
+    )
+});
+
 app.listen(3000, function () {
     console.log('Example app listening on port 3000!');
 });

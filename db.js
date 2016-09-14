@@ -9,7 +9,7 @@ exports.updateUserPwd = updateUserPwd;          // uid, pwd (all strings)
 exports.updateUserProfile = updateUserProfile;  // uid, profile (all strings)
 exports.deleteUser = deleteUser;                // uid
 exports.selectAllUsers = selectAllUsers;        // return all users
-exports.selectUser = selectUser;                // uid return one user/uid 
+exports.selectUser = selectUser;                // uid return one user/uid
 exports.insertTweet = insertTweet;
 exports.updateTweet = updateTweet;
 exports.deleteTweet = insertTweet;
@@ -64,7 +64,7 @@ var following = {
 function initDB(db) {
     db.serialize(function () {
 
-        db.run("DROP TABLE users", function (err) { if (err) { } }); 
+        db.run("DROP TABLE users", function (err) { if (err) { } });
         console.log("create users table");
         db.run("CREATE TABLE users \
         (USERID TEXT PRIMARY KEY NOT NULL, \
@@ -109,7 +109,7 @@ function initDB(db) {
         UID TEXT NOT NULL, \
         TS TEXT NOT NULL)", function (err) { if (err) {} });
     });
- 
+
 }
 
 function asMyQuote(input) {
@@ -295,17 +295,17 @@ function selectAllUsers() {
 //tweet table functions
 function selectUser(uid) {
     var p;
-    
+
     p = new Promise(function (resolve, reject) {
         db.serialize(function () {
             var quid = asMyQuote(uid);
             var command = "SELECT * FROM users WHERE USERID = " + quid;
-            
+
             db.all(command, function (err, rows) {
                 if (err) {
                     reject(err);
                 }
-            
+
                 console.log(command);
                 resolve(rows);
             });
@@ -434,7 +434,7 @@ function selectAllTweets() {
                 console.log('The output of row:  ' + outputData.AUTHOR);
             }
 
-            // console.log(outputData);       
+            // console.log(outputData);
             return outputData;
         },
         (err) => {
@@ -478,7 +478,7 @@ function selectTweetsFor(uid) {
                 console.log('The output of row:  ' + outputData[aTweet.tid].author + ": " + outputData[aTweet.tid].message);
             }
 
-            // console.log(outputData);       
+            // console.log(outputData);
             return outputData;
         },
         (err) => {
@@ -563,30 +563,28 @@ function selectTweetsFor(uid) {
     });
     });
     return p;
-     
+
  }
+
 // select all for tweet id
- function selectRepliesForTweet(tid)
- {
+ function selectRepliesForTweet(tid) {
    var p;
     p = new Promise(function (resolve, reject) {
-           db.serialize(function () {
-
+        db.serialize(function () {
             var command = "SELECT * FROM replies WHERE TID=" + tid;
-            db.all(command, function (err, row) {
+            db.all(command, function (err, rows) {
                 if (err) {
                     reject(err);
                 }
+
                 console.log(command);
-                resolve(row);
+                resolve(rows);
             });
         });
-
     }).then(
         (rows) => {
             // Process them.
             var outputData = {};
-            var count = 0;
             for (thisRow of rows) {
                 var aReply = Object.create(reply);
 
@@ -596,21 +594,20 @@ function selectTweetsFor(uid) {
                 aReply.author = thisRow.AUTHOR;
                 aReply.ts = thisRow.TS;
 
-                outputData[count] = aReply;
-                console.log('The output of row:  ' + outputData[count].author + ": " + outputData[count].message);
-                count++;
+                outputData[aReply.tid] = aReply;
+                console.log('The output of row:  ' + outputData[aReply.tid].author + ": " + outputData[aReply.tid].message);
             }
 
-            // console.log(outputData);       
+            // console.log(outputData);
             return outputData;
         },
         (err) => {
             console.log('Error getting tweets');
             return {};
         }
-        );
+    );
+
     return p;
-     
  }
 // select all for user id
  function selectRepliesForUser(uid)
@@ -647,7 +644,7 @@ function selectTweetsFor(uid) {
                 count++;
             }
 
-            // console.log(outputData);       
+            // console.log(outputData);
             return outputData;
         },
         (err) => {
@@ -656,7 +653,7 @@ function selectTweetsFor(uid) {
         }
         );
     return p;
- 
+
  }
 
 // followRel Table functions
@@ -738,7 +735,7 @@ function selectFollowing(follow) {
                 console.log('The output of row:  ' + outputData.AUTHOR);
             }
 
-            // console.log(outputData);       
+            // console.log(outputData);
             return outputData;
         },
         (err) => {
@@ -746,7 +743,7 @@ function selectFollowing(follow) {
             return {};
         }
     );
-    
+
     return p;
 }
 
@@ -755,7 +752,7 @@ function selectUserFeed(userid) {
         db.serialize(() => {
             var command = 'SELECT * FROM tweets, followrel where followrel.LEADER = tweets.AUTHOR and followrel.FOLLOWER = ' + asMyQuote(userid) + ' ORDER BY tweets.TS DESC';
 
-            console.log('About to run:  ' + command); 
+            console.log('About to run:  ' + command);
             db.all(command , (err, rows) => {
                 if (err) {
                     reject(err);
@@ -823,7 +820,7 @@ function selectFollowed(leader) {
                 console.log('The output of row:  ' + outputData.AUTHOR);
             }
 
-            // console.log(outputData);       
+            // console.log(outputData);
             return outputData;
         },
         (err) => {
@@ -909,7 +906,7 @@ function selectILike(uid) {
                 // console.log('The output of row:  ' + outputData.AUTHOR);
             }
 
-            // console.log(outputData);       
+            // console.log(outputData);
             return outputData;
         },
         (err) => {
