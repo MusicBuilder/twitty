@@ -30,6 +30,7 @@ exports.deleteReply = deleteReply;
 exports.selectRepliesForTweet = selectRepliesForTweet;
 exports.selectRepliesForUser = selectRepliesForUser;
 exports.selectTweetsFor = selectTweetsFor;
+exports.selectUserFeed = selectUserFeed;
 
 var tweet = {
     author: '',
@@ -752,7 +753,7 @@ function selectFollowing(follow) {
 function selectUserFeed(userid) {
     var p = new Promise((resolve, reject) => {
         db.serialize(() => {
-            var command = 'select * from tweets where followrel.leader = tweets.author and followrel.follower = ' + userid + ' order by tweets.TS desc';
+            var command = 'SELECT * FROM tweets, followrel where followrel.LEADER = tweets.AUTHOR and followrel.FOLLOWER = ' + asMyQuote(userid) + ' ORDER BY tweets.TS DESC';
 
             console.log('About to run:  ' + command); 
             db.all(command , (err, rows) => {
@@ -760,15 +761,17 @@ function selectUserFeed(userid) {
                     reject(err);
                 }
 
-                console('Tweet feed lookup has ' + JSON.stringify(rows));
+                console.log('Tweet feed lookup has ' + JSON.stringify(rows));
                 resolve(rows);
             });
         });
     }).then(
-        data => {
+        (data) => {
             var feedData = {};
 
-            for (eachTweet in data) {
+            for (eachTweet of data) {
+                // console.log(JSON.stringify(eachTweet));
+
                 var aTweet = Object.create(tweet);
 
                 aTweet.tid = eachTweet.TID;
@@ -776,9 +779,12 @@ function selectUserFeed(userid) {
                 aTweet.message = eachTweet.MESSAGE;
                 aTweet.ts = eachTweet.TS;
 
+                // console.log(JSON.stringify(aTweet));
+
                 feedData[aTweet.tid] = aTweet;
             }
 
+            console.log(JSON.stringify(feedData));
             return feedData;
         }
     );
