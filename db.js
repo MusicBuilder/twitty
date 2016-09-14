@@ -293,45 +293,44 @@ function selectAllUsers() {
 //tweet table functions
 function selectUser(uid) {
     var p;
+    
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var quid = asMyQuote(uid);
-        var count = 0;
-        var command = "SELECT * FROM users WHERE USERID = " + quid;
-        db.each(command, function (err, row) {
-            if (err) {
-                reject(err);
-            }
-            console.log(command);
-            resolve(row);
+        db.serialize(function () {
+            var quid = asMyQuote(uid);
+            var command = "SELECT * FROM users WHERE USERID = " + quid;
+            
+            db.all(command, function (err, rows) {
+                if (err) {
+                    reject(err);
+                }
+            
+                console.log(command);
+                resolve(rows);
+            });
         });
-    });
     }).then(
-
         (rows) => {
             // Process them.
             var outputData = {};
-            var count = 0;
-            for (thisROW of rows) {
+
+            if (rows.length > 0) {
                 var aUser = Object.create(user);
 
-                aUser.userid = thisROW.USERID;
-                aUser.name = thisROW.NAME;
-                aUser.password = thisROW.PASSWORD;
-                aUser.profile = thisROW.PROFILE;
+                aUser.userid = rows[0].USERID;
+                aUser.name = rows[0].NAME;
+                aUser.password = rows[0].PASSWORD;
+                aUser.profile = rows[0].PROFILE;
 
-                outputData[count] = aUser;
-                console.log('The output of row:  ' + outputData.count);
+                return aUser;
+            } else {
+                return {};
             }
-
-            // console.log(outputData);       
-            return outputData;
         },
         (err) => {
             console.log('Error getting users');
             return {};
         }
-        );
+    );
 
     return p;
 
@@ -627,7 +626,6 @@ function selectTweetsFor(uid) {
                 resolve(row);
             });
         });
-
     }).then(
         (rows) => {
             // Process them.
@@ -712,30 +710,29 @@ function selectFollowing(follow) {
     var p;
     console.log("select from followRel");
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var qfollow = asMyQuote(follow);
-        var command = "SELECT * FROM followRel WHERE FOLLOWER = " + qfollow;
-        db.all(command, function (err, row) {
-            if (err) {
-                reject(err);
-            }
-            console.log(command);
-            resolve(row);
+        db.serialize(function () {
+            var qfollow = asMyQuote(follow);
+            var command = "SELECT * FROM followRel WHERE FOLLOWER = " + qfollow;
+            db.all(command, function (err, row) {
+                if (err) {
+                    reject(err);
+                }
+                console.log(command);
+                resolve(row);
+            });
         });
-    });
     }).then(
         (rows) => {
             // Process them.
             var outputData = {};
-            var count = 0;
+
             for (thisRow of rows) {
                 var aFollow = Object.create(follow);
 
                 aFollow.leader = thisRow.LEADER;
                 aFollow.follower = thisRow.FOLLOWER;
 
-                outputData[count] = aFollow;
-                count++;
+                outputData[aFollow.leader] = aFollow;
                 console.log('The output of row:  ' + outputData.AUTHOR);
             }
 
@@ -746,9 +743,48 @@ function selectFollowing(follow) {
             console.log('Error getting followRel');
             return {};
         }
-        );
+    );
+    
     return p;
 }
+
+function selectUserFeed(userid) {
+    var p = new Promise((resolve, reject) => {
+        db.serialize(() => {
+            var command = 'select * from tweets where followrel.leader = tweets.author and followrel.follower = ' + userid + ' order by tweets.TS desc';
+
+            console.log('About to run:  ' + command); 
+            db.all(command , (err, rows) => {
+                if (err) {
+                    reject(err);
+                }
+
+                console('Tweet feed lookup has ' + JSON.stringify(rows));
+                resolve(rows);
+            });
+        });
+    }).then(
+        data => {
+            var feedData = {};
+
+            for (eachTweet in data) {
+                var aTweet = Object.create(tweet);
+
+                aTweet.tid = eachTweet.TID;
+                aTweet.author = eachTweet.AUTHOR;
+                aTweet.message = eachTweet.MESSAGE;
+                aTweet.ts = eachTweet.TS;
+
+                feedData[aTweet.tid] = aTweet;
+            }
+
+            return feedData;
+        }
+    );
+
+    return p;
+}
+
 function selectFollowed(leader) {
     var p;
     console.log("select from followRel");
