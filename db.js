@@ -39,6 +39,7 @@ var tweet = {
     ts: ''
 };
 var user = {
+    primaryKey: '',
     userid: '',
     name: '',
     password: '',
@@ -60,17 +61,19 @@ var following = {
     leader: '',
     follower: '',
 };
-
+// Create DB tables Production should  
 function initDB(db) {
+    console.log('creating tables');
     db.serialize(function () {
 
         db.run("DROP TABLE users", function (err) { if (err) { } });
         console.log("create users table");
         db.run("CREATE TABLE users \
-        (USERID TEXT PRIMARY KEY NOT NULL, \
+        (USERPK INTEGER PRIMARY KEY NOT NULL, \
+        USERID TEXT UNIQUE NOT NULL, \
         NAME TEXT NOT NULL, \
         PASSWORD TEXT NOT NULL, \
-        PROFILE TEXT)", function (err) { if (err) {} });
+        PROFILE TEXT)", function (err) { if (err) { } });
     });
     db.serialize(function () {
         db.run("DROP TABLE tweets", function (err) { if (err) { } });
@@ -90,15 +93,15 @@ function initDB(db) {
         TID INT NOT NULL, \
         AUTHOR TEXT NOT NULL,\
         MESSAGE CHAR(140) NOT NULL,\
-        TS TEXT NOT NULL)", function (err) { if (err) {} });
+        TS TEXT NOT NULL)", function (err) { if (err) { } });
     });
     db.serialize(function () {
 
         db.run("DROP TABLE followRel", function (err) { if (err) { } }); //x
-         console.log("create followRel table");
-       db.run("CREATE TABLE followRel \
+        console.log("create followRel table");
+        db.run("CREATE TABLE followRel \
         (LEADER TEXT NOT NULL, \
-        FOLLOWER TEXT NOT NULL)", function (err) { if (err) {  } });
+        FOLLOWER TEXT NOT NULL)", function (err) { if (err) { } });
     });
     db.serialize(function () {
 
@@ -107,7 +110,7 @@ function initDB(db) {
         db.run("CREATE TABLE likeRel \
         (TWEET_ID TEXT NOT NULL, \
         UID TEXT NOT NULL, \
-        TS TEXT NOT NULL)", function (err) { if (err) {} });
+        TS TEXT NOT NULL)", function (err) { if (err) { } });
     });
 
 }
@@ -115,140 +118,171 @@ function initDB(db) {
 function asMyQuote(input) {
     return '\'' + input + '\'';
 }
+function selectLastPK(col, tbl) {
+    var p;
+    p = new Promise(function (resolve, reject) {
+        db.serialize(function () {
+            var command = "SELECT MAX(" + col + ") AS MAXPK FROM " + tbl;
+            db.all(command, function (err, rows) {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve(rows);
+            });
+        });
+    }).then(
+        (rows) => {
+            // Process them.
+            var value;
+            for (thisROW of rows) {
+                value = thisROW.MAXPK;
+            }
+            console.log(value);
+            return value;
+        },
+        (err) => {
+            console.log('Error getting last primary key');
+            return -1;
+        });
+
+    return p;
+}
 
 // User Table functions
+
 function insertUser(uid, uname, pw, pro) {
     var p;
     p = new Promise(function (resolve, reject) {
-     db.serialize(function () {
-       var values = asMyQuote(uid) + ', ' + asMyQuote(uname) + ', ' + asMyQuote(pw) + ', ' + asMyQuote(pro);
-        console.log("INSERTING: " + values);
-        var stmt = db.prepare("INSERT INTO users (USERID, NAME, PASSWORD, PROFILE) VALUES (" + values + ")");
-        stmt.run();
-        if (err) {
-            console.log(err);
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            console.log(err);
-            reject(err);
-        }
-        console.log(values);
+        db.serialize(function () {
+            var values = asMyQuote(uid) + ', ' + asMyQuote(uname) + ', ' + asMyQuote(pw) + ', ' + asMyQuote(pro);
+            var stmt = db.prepare("INSERT INTO users (USERID, NAME, PASSWORD, PROFILE) VALUES (" + values + ")");
+            stmt.run();
+            if (err) {
+                console.log(err);
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                console.log(err);
+                reject(err);
+            }
+            resolve();
+        });
         resolve();
-    });
+
     });
     return p;
+
 }
 function updateUser(uid, name, pw, pro) {
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var quid = asMyQuote(uid);
-        var qName = asMyQuote(name);
-        var qpwd = asMyQuote(pw);
-        var qpro = asMyQuote(pro);
-        var command = "UPDATE users SET NAME=" + qName + ", PASSWORD=" + qpwd + ", PROFILE=" + qpro + " WHERE USERID=" + quid;
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(command);
-        resolve();
-    });
+        db.serialize(function () {
+            var quid = asMyQuote(uid);
+            var qName = asMyQuote(name);
+            var qpwd = asMyQuote(pw);
+            var qpro = asMyQuote(pro);
+            var command = "UPDATE users SET NAME=" + qName + ", PASSWORD=" + qpwd + ", PROFILE=" + qpro + " WHERE USERID=" + quid;
+            var stmt = db.prepare(command);
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            console.log(command);
+            resolve();
+        });
     });
     return p;
 }
 function updateUserName(uid, name) {
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var quid = asMyQuote(uid);
-        var qName = asMyQuote(name);
-        var command = "UPDATE users SET NAME=" + qName + " WHERE USERID=" + quid;
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(command);
-        resolve();
-    });
+        db.serialize(function () {
+            var quid = asMyQuote(uid);
+            var qName = asMyQuote(name);
+            var command = "UPDATE users SET NAME=" + qName + " WHERE USERID=" + quid;
+            var stmt = db.prepare(command);
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            console.log(command);
+            resolve();
+        });
     });
     return p;
 }
 function updateUserPwd(uid, name) {
     var p;
     p = new Promise(function (resolve, reject) {
-            db.serialize(function () {
+        db.serialize(function () {
 
-        var quid = asMyQuote(uid);
-        var qName = asMyQuote(name);
-        var command = "UPDATE users SET PASSWORD=" + qName + " WHERE USERID=" + quid;
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(command);
-        resolve();
-    });
+            var quid = asMyQuote(uid);
+            var qName = asMyQuote(name);
+            var command = "UPDATE users SET PASSWORD=" + qName + " WHERE USERID=" + quid;
+            var stmt = db.prepare(command);
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            console.log(command);
+            resolve();
+        });
     });
     return p;
 }
 function updateUserProfile(uid, name) {
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var quid = asMyQuote(uid);
-        var qName = asMyQuote(name);
-        var command = "UPDATE users SET PROFILE=" + qName + " WHERE USERID=" + quid;
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(command);
-        resolve();
-    });
+        db.serialize(function () {
+            var quid = asMyQuote(uid);
+            var qName = asMyQuote(name);
+            var command = "UPDATE users SET PROFILE=" + qName + " WHERE USERID=" + quid;
+            var stmt = db.prepare(command);
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            console.log(command);
+            resolve();
+        });
     });
     return p;
 }
 function deleteUser(uid) {
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var quid = asMyQuote(uid);
-        var command = "DELETE FROM users WHERE USERID = " + quid;
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(command);
-        resolve();
-    });
+        db.serialize(function () {
+            var quid = asMyQuote(uid);
+            var command = "DELETE FROM users WHERE USERID = " + quid;
+            var stmt = db.prepare(command);
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            resolve();
+        });
     });
     return p;
 }
@@ -256,17 +290,16 @@ function selectAllUsers() {
     var allUsers = {};
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var command = "SELECT * FROM users";
-        db.all(command, function (err, rows) {
-            if (err) {
-                reject(err);
-                return;
-            }
-            console.log(rows);
-            resolve(rows);
+        db.serialize(function () {
+            var command = "SELECT * FROM users";
+            db.all(command, function (err, rows) {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve(rows);
+            });
         });
-    });
     }).then(
         (rows) => {
             // Process them.
@@ -274,12 +307,13 @@ function selectAllUsers() {
             var count = 0;
             for (thisROW of rows) {
                 var aUser = Object.create(user);
+                aUser.primaryKey = thisROW.USERPK;
                 aUser.userid = thisROW.USERID;
                 aUser.name = thisROW.NAME;
                 aUser.password = thisROW.PASSWORD;
                 aUser.profile = thisROW.PROFILE;
                 outputData[count] = aUser;
-                console.log('The output of row:  ' + outputData[count].userid);
+                console.log('The output of row  ' + outputData[count].primaryKey + ': '+ outputData[count].userid);
                 count++;
             }
             return outputData;
@@ -318,10 +352,11 @@ function selectUser(uid) {
             if (rows.length > 0) {
                 var aUser = Object.create(user);
 
-                aUser.userid = rows[0].USERID;
-                aUser.name = rows[0].NAME;
-                aUser.password = rows[0].PASSWORD;
-                aUser.profile = rows[0].PROFILE;
+                aUser.primaryKey = thisROW.USERPK;
+                aUser.userid = thisROW.USERID;
+                aUser.name = thisROW.NAME;
+                aUser.password = thisROW.PASSWORD;
+                aUser.profile = thisROW.PROFILE;
 
                 return aUser;
             } else {
@@ -340,83 +375,83 @@ function selectUser(uid) {
 function insertTweet(tid, uid, msg) {
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var quid = asMyQuote(uid);
-        var qmsg = asMyQuote(msg);
+        db.serialize(function () {
+            var quid = asMyQuote(uid);
+            var qmsg = asMyQuote(msg);
 
-        var ts = asMyQuote(new Date());
-        var values = tid + ', ' + quid + ',' + qmsg + ', ' + ts;
-        var stmt = db.prepare("INSERT INTO tweets (TID, AUTHOR,MESSAGE,TS) VALUES (" + values + ")");
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(values);
-        resolve();
-    });
+            var ts = asMyQuote(new Date());
+            var values = tid + ', ' + quid + ',' + qmsg + ', ' + ts;
+            var stmt = db.prepare("INSERT INTO tweets (TID, AUTHOR,MESSAGE,TS) VALUES (" + values + ")");
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            resolve();
+        }).then((data) => {
+            var pkVal = selectLastPK('TID', 'tweets');
+            pk1.then((pk) => { return pk; });
+
+        });
     });
     return p;
 }
 function updateTweet(tid, message) {
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var ts = asMyQuote(new Date());
-        var command = "UPDATE tweets SET MESSAGE=\'" + message + "\' WHERE TID=" + tid;
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(command);
-        resolve();
-    });
+        db.serialize(function () {
+            var ts = asMyQuote(new Date());
+            var command = "UPDATE tweets SET MESSAGE=\'" + message + "\' WHERE TID=" + tid;
+            var stmt = db.prepare(command);
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            resolve();
+        });
     });
     return p;
 }
 function deleteTweet(tid) {
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
+        db.serialize(function () {
 
-        var command = "DELETE FROM tweets WHERE TID=" + tid;
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(command);
-        resolve();
-    });
+            var command = "DELETE FROM tweets WHERE TID=" + tid;
+            var stmt = db.prepare(command);
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            resolve();
+        });
     });
     return p;
 }
 function selectAllTweets() {
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
+        db.serialize(function () {
 
-        var command = "SELECT * FROM tweets";
-        db.all(command, function (err, row) {
-            if (err) {
-                reject(err);
-            }
-            console.log(command);
-            resolve(row);
+            var command = "SELECT * FROM tweets";
+            db.all(command, function (err, row) {
+                if (err) {
+                    reject(err);
+                }
+                resolve(row);
+            });
         });
-    });
     }).then(
         (rows) => {
             // Process them.
@@ -433,8 +468,6 @@ function selectAllTweets() {
                 outputData[aTweet.message] = aTweet;
                 console.log('The output of row:  ' + outputData.AUTHOR);
             }
-
-            // console.log(outputData);
             return outputData;
         },
         (err) => {
@@ -448,17 +481,17 @@ function selectAllTweets() {
 function selectTweetsFor(uid) {
     var p;
     p = new Promise(function (resolve, reject) {
-        var quid = asMyQuote(uid);
-
         db.serialize(function () {
-            var command = "SELECT * FROM tweets WHERE AUTHOR=" + quid;
-            db.all(command, function (err, row) {
-                if (err) {
-                    reject(err);
-                }
 
-                console.log(command);
-                resolve(row);
+            var quid = asMyQuote(uid);
+            db.serialize(function (err) {
+                var command = "SELECT * FROM tweets WHERE AUTHOR=" + quid;
+                db.all(command, function (err, row) {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve(row);
+                });
             });
         });
     }).then(
@@ -477,8 +510,6 @@ function selectTweetsFor(uid) {
                 outputData[aTweet.tid] = aTweet;
                 console.log('The output of row:  ' + outputData[aTweet.tid].author + ": " + outputData[aTweet.tid].message);
             }
-
-            // console.log(outputData);
             return outputData;
         },
         (err) => {
@@ -491,80 +522,78 @@ function selectTweetsFor(uid) {
 }
 
 // replies table functions
- // insert
- function insertReply(tid, uid, msg)
- {
-     var p;
-    p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var quid = asMyQuote(uid);
-        var qmsg = asMyQuote(msg);
-
-        var ts = asMyQuote(new Date());
-        var values = tid + ', ' + quid + ',' + qmsg + ', ' + ts;
-        var stmt = db.prepare("INSERT INTO replies (TID, AUTHOR,MESSAGE,TS) VALUES (" + values + ")");
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(values);
-        resolve();
-    });
-    });
-    return p;
- }
- // update
- function updateReply(repid, msg)
- {
+// insert
+function insertReply(tid, uid, msg) {
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var ts = asMyQuote(new Date());
-        var command = "UPDATE replies SET MESSAGE=\'" + message + "\' WHERE REPID=" + repid ;
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(command);
-        resolve();
+        db.serialize(function () {
+            var quid = asMyQuote(uid);
+            var qmsg = asMyQuote(msg);
+
+            var ts = asMyQuote(new Date());
+            var values = tid + ', ' + quid + ',' + qmsg + ', ' + ts;
+            var stmt = db.prepare("INSERT INTO replies (TID, AUTHOR,MESSAGE,TS) VALUES (" + values + ")");
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            resolve();
+        }).then((data) => {
+            var pkVal = selectLastPK('REPID', 'replies');
+            pk1.then((pk) => { return pk; });
+
+        });
     });
+    return p;
+}
+// update
+function updateReply(repid, msg) {
+    var p;
+    p = new Promise(function (resolve, reject) {
+        db.serialize(function () {
+            var ts = asMyQuote(new Date());
+            var command = "UPDATE replies SET MESSAGE=\'" + message + "\' WHERE REPID=" + repid;
+            var stmt = db.prepare(command);
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            resolve();
+        });
     });
     return p;
 
- }
+}
 // delete
- function deleteReply(repid)
- {
+function deleteReply(repid) {
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
+        db.serialize(function () {
 
-        var command = "DELETE FROM replies WHERE REPID=" + repid;
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(command);
-        resolve();
-    });
+            var command = "DELETE FROM replies WHERE REPID=" + repid;
+            var stmt = db.prepare(command);
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            resolve();
+        });
     });
     return p;
 
- }
+}
 
 // select all for tweet id
  function selectRepliesForTweet(tid) {
@@ -576,8 +605,6 @@ function selectTweetsFor(uid) {
                 if (err) {
                     reject(err);
                 }
-
-                console.log(command);
                 resolve(rows);
             });
         });
@@ -597,8 +624,6 @@ function selectTweetsFor(uid) {
                 outputData[aReply.tid] = aReply;
                 console.log('The output of row:  ' + outputData[aReply.tid].author + ": " + outputData[aReply.tid].message);
             }
-
-            // console.log(outputData);
             return outputData;
         },
         (err) => {
@@ -608,20 +633,18 @@ function selectTweetsFor(uid) {
     );
 
     return p;
- }
+}
 // select all for user id
- function selectRepliesForUser(uid)
- {
-   var p;
+function selectRepliesForUser(uid) {
+    var p;
     p = new Promise(function (resolve, reject) {
-           db.serialize(function () {
+        db.serialize(function () {
             var quid = asMyQuote(uid);
             var command = "SELECT * FROM replies WHERE AUTHOR=" + quid;
             db.all(command, function (err, row) {
                 if (err) {
                     reject(err);
                 }
-                console.log(command);
                 resolve(row);
             });
         });
@@ -643,8 +666,6 @@ function selectTweetsFor(uid) {
                 console.log('The output of row:  ' + outputData[count].author + ": " + outputData[count].message);
                 count++;
             }
-
-            // console.log(outputData);
             return outputData;
         },
         (err) => {
@@ -654,60 +675,59 @@ function selectTweetsFor(uid) {
         );
     return p;
 
- }
+}
 
 // followRel Table functions
 function insertFollowing(lead, follow) {
     var p;
-    console.log("insert into followRel");
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var qlead = asMyQuote(lead);
-        var qfollow = asMyQuote(follow);
+        db.serialize(function () {
+            var qlead = asMyQuote(lead);
+            var qfollow = asMyQuote(follow);
 
-        var values = qlead + ', ' + qfollow;
-        var command = "INSERT INTO followRel (LEADER, FOLLOWER) VALUES (" + values + ")";
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(command);
-        resolve();
-    });
+            var values = qlead + ', ' + qfollow;
+            var command = "INSERT INTO followRel (LEADER, FOLLOWER) VALUES (" + values + ")";
+            var stmt = db.prepare(command);
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            resolve();
+        }).then((data) => {
+            var pkVal = selectLastPK('rowid', 'followRel');
+            pk1.then((pk) => { return pk; });
+
+        });
     });
     return p;
 }
 function deleteFollowing(lead, follow) {
     var p;
-    console.log("delete from followRel");
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var qload = asMyQuote(lead);
-        var qfollow = asMyQuote(follow);
-        var command = "DELETE FROM followRel WHERE LEADER = " + qlead + " AND FOLLOWER = " + qfollow;
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(command);
-        resolve();
-    });
+        db.serialize(function () {
+            var qload = asMyQuote(lead);
+            var qfollow = asMyQuote(follow);
+            var command = "DELETE FROM followRel WHERE LEADER = " + qlead + " AND FOLLOWER = " + qfollow;
+            var stmt = db.prepare(command);
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            resolve();
+        });
     });
     return p;
 }
 function selectFollowing(follow) {
     var p;
-    console.log("select from followRel");
     p = new Promise(function (resolve, reject) {
         db.serialize(function () {
             var qfollow = asMyQuote(follow);
@@ -716,7 +736,6 @@ function selectFollowing(follow) {
                 if (err) {
                     reject(err);
                 }
-                console.log(command);
                 resolve(row);
             });
         });
@@ -734,8 +753,6 @@ function selectFollowing(follow) {
                 outputData[aFollow.leader] = aFollow;
                 console.log('The output of row:  ' + outputData.AUTHOR);
             }
-
-            // console.log(outputData);
             return outputData;
         },
         (err) => {
@@ -791,19 +808,17 @@ function selectUserFeed(userid) {
 
 function selectFollowed(leader) {
     var p;
-    console.log("select from followRel");
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var qleader = asMyQuote(leader);
-        var command = "SELECT * FROM followRel WHERE LEADER = " + qleader;
-        db.all(command, function (err, row) {
-            if (err) {
-                reject(err);
-            }
-            console.log(command);
-            resolve(row);
+        db.serialize(function () {
+            var qleader = asMyQuote(leader);
+            var command = "SELECT * FROM followRel WHERE LEADER = " + qleader;
+            db.all(command, function (err, row) {
+                if (err) {
+                    reject(err);
+                }
+                resolve(row);
+            });
         });
-    });
     }).then(
         (rows) => {
             // Process them.
@@ -834,61 +849,62 @@ function selectFollowed(leader) {
 function insertLike(tweet, uid) {
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var ts = asMyQuote(new Date());
-        var quid = asMyQuote(uid);
-        var values = tweet + ', ' + quid + ', ' + ts;
-        var command = "INSERT INTO likeRel (TWEET_ID, UID, TS) VALUES (" + values + ")";
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(command);
-        resolve();
-    });
+        db.serialize(function () {
+            var ts = asMyQuote(new Date());
+            var quid = asMyQuote(uid);
+            var values = tweet + ', ' + quid + ', ' + ts;
+            var command = "INSERT INTO likeRel (TWEET_ID, UID, TS) VALUES (" + values + ")";
+            var stmt = db.prepare(command);
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            resolve();
+        }).then((data) => {
+            var pkVal = selectLastPK('rowid', 'likeRel');
+            pk1.then((pk) => { return pk; });
+
+        });
     });
     return p;
 }
 function deleteLike(tweet, uid) {
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var quid = asMyQuote(uid);
-        var command = "DELETE * FROM likeRel WHERE TWEET_ID = " + tweet + " AND UID = " + quid;
-        var stmt = db.prepare(command);
-        stmt.run();
-        if (err) {
-            reject(err);
-        }
-        stmt.finalize();
-        if (err) {
-            reject(err);
-        }
-        console.log(command);
-        resolve();
-    });
+        db.serialize(function () {
+            var quid = asMyQuote(uid);
+            var command = "DELETE * FROM likeRel WHERE TWEET_ID = " + tweet + " AND UID = " + quid;
+            var stmt = db.prepare(command);
+            stmt.run();
+            if (err) {
+                reject(err);
+            }
+            stmt.finalize();
+            if (err) {
+                reject(err);
+            }
+            resolve();
+        });
     });
     return p;
 }
 function selectILike(uid) {
     var p;
     p = new Promise(function (resolve, reject) {
-    db.serialize(function () {
-        var quid = asMyQuote(uid);
-        var command = "SELECT * FROM likeRel WHERE UID = " + quid;
-        db.all(command, function (err, row) {
-            if (err) {
-                reject(err);
-            }
-            console.log(command);
-            resolve(row);
+        db.serialize(function () {
+            var quid = asMyQuote(uid);
+            var command = "SELECT * FROM likeRel WHERE UID = " + quid;
+            db.all(command, function (err, row) {
+                if (err) {
+                    reject(err);
+                }
+                resolve(row);
+            });
         });
-    });
     }).then(
         (rows) => {
             // Process them.
@@ -903,10 +919,7 @@ function selectILike(uid) {
 
                 outputData[count] = aLikedTweet;
                 count++;
-                // console.log('The output of row:  ' + outputData.AUTHOR);
             }
-
-            // console.log(outputData);
             return outputData;
         },
         (err) => {
@@ -919,17 +932,16 @@ function selectILike(uid) {
 function selectLikedBy(tweet) {
     var p;
     p = new Promise(function (resolve, reject) {
-            db.serialize(function () {
+        db.serialize(function () {
 
-        var command = "SELECT * FROM likeRel WHERE TWEET_ID = " + tweet;
-        db.all(command, function (err, row) {
-            if (err) {
-                reject(err);
-            }
-            console.log(command);
-            resolve(row);
-        });
+            var command = "SELECT * FROM likeRel WHERE TWEET_ID = " + tweet;
+            db.all(command, function (err, row) {
+                if (err) {
+                    reject(err);
+                }
+                resolve(row);
             });
+        });
     }).then(
         (rows) => {
             // Process them.
@@ -964,14 +976,12 @@ function selectTweetsLikedBy(uid) {
             if (err) {
                 reject(err);
             }
-            console.log(command);
             resolve(row);
         });
 
     }).then(
         (rows) => {
             // Process them.
-            console.log("row count = " + rows.length);
             var outputData = {};
             var count = 0;
             for (thisRow of rows) {
@@ -1001,14 +1011,12 @@ function selectWhoLikesTweet(tid) {
             if (err) {
                 reject(err);
             }
-            console.log(command);
             resolve(row);
         });
 
     }).then(
         (rows) => {
             // Process them.
-            console.log("row count = " + rows.length);
             var outputData = {};
             var count = 0;
             for (thisRow of rows) {
@@ -1036,13 +1044,62 @@ initDB(db);
 function debugit() {
     var xuid = 1;
     console.log("add Users");
-    insertUser('brianr', 'brianR', 'me', '');
-    insertUser('billr', 'billr', 'meme', '');
-    insertUser('lewisE', 'mememe', '');
-    insertUser('oprah', 'oprah', 'password', '');
-    console.log("display Users");
+    var brian = Object.create(user);
+    brian.name = 'brianR';
+    brian.userid = 'brianr';
+    brian.password = 'me';
+    brian.profile = 'Ner do well';
+    brian.primaryKey = -1;
+    var p = insertUser(brian.name, brian.userid, brian.password, brian.profile);
+    var pkr = selectLastPK('USERPK', 'users');
+    pkr.then((val) => { 
+            brian.primaryKey = val;
+            console.log("USERPK = " + brian.primaryKey);
+    });
 
-    selectAllUsers();
+    var bill = Object.create(user);
+    bill.name = 'billr';
+    bill.userid = 'billr';
+    bill.password = 'meme';
+    bill.profile = 'Surgeon';
+    p = insertUser(bill.name, bill.userid, bill.password, bill.profile);
+    pkr = selectLastPK('USERPK', 'users');
+    pkr.then((val) => { 
+            bill.primaryKey = val;
+            console.log("USERPK = " + bill.primaryKey);
+    });
+    var lew = Object.create(user);
+    lew.name = 'lewisE';
+    lew.userid = 'lewisE';
+    lew.password = 'mememe';
+    lew.profile = 'Malcontent';
+    p = insertUser(lew.name, lew.userid, lew.password, lew.profile);
+    pkr = selectLastPK('USERPK', 'users');
+    pkr.then((val) => { 
+            lew.primaryKey = val;
+            console.log("USERPK = " + lew.primaryKey);
+    });
+    var oprah = Object.create(user);
+    oprah.name = 'oprah';
+    oprah.userid = 'oprah';
+    oprah.password = 'password';
+    oprah.profile = 'egotist';
+    p = insertUser(oprah.name, oprah.userid, oprah.password, oprah.profile);
+    pkr = selectLastPK('USERPK', 'users');
+    pkr.then((val) => { 
+            oprah.primaryKey = val;
+            console.log("USERPK = " + oprah.primaryKey);
+    });
+
+    console.log("display All Users");
+    var ul = selectAllUsers();
+    ul.then((outputData) => {
+        var count = 0;
+         for (count = 0; i < outputData.length; count++) {
+            var user1 = outputData[count];
+            console.log("User: " + user1.primaryKey + " NAME: " + user1.name + " UID: " + user1.userid);
+        }
+    });
     console.log("select single row");
     selectUser(3);
     console.log("add tweets");
@@ -1057,10 +1114,7 @@ function debugit() {
     selectTweetsFor('oprah');
     console.log("select all tweets");
     selectAllTweets();
-    console.log("delete tweet 2");
-    selectAllTweets();
 
-    console.log("update a User");
     updateUserName('billr', "Inigo Montoya");
     updateUserPwd('billr', "inconceivable");
     updateUserProfile('billr', "Butterflies and Rainbows");
@@ -1071,8 +1125,7 @@ function debugit() {
     selectFollowed("billr");
     selectFollowed("brianr");
     selectFollowing("brianr");
-    console.log("delete User 1");
-    selectAllUsers();
+
     insertLike(1, "brianr");
     insertLike(1, "lewisE");
     selectILike("brianr");
@@ -1080,11 +1133,13 @@ function debugit() {
     selectLikedBy(1);
     selectTweetsLikedBy("brianr");
     selectWhoLikesTweet(1);
-    insertReply(1,"billr", "You are wrong");
-    insertReply(1,"lewisE", "You are all wrong");
-    insertReply(1,"oprah", "Dr Phil is a fake");
-    insertReply(1,"billr", "Youre wrong");
+    insertReply(1, "billr", "You are wrong");
+    insertReply(1, "lewisE", "You are all wrong");
+    insertReply(1, "oprah", "Dr Phil is a fake");
+    insertReply(1, "billr", "Youre wrong");
     selectRepliesForTweet(1);
     selectRepliesForUser("billr");
+    selectLastPK("REPID", "replies");
+
 }
 debugit();
