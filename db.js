@@ -61,9 +61,7 @@ var following = {
     leader: '',
     follower: '',
 };
-// Create DB tables Production should  
 function initDB(db) {
-    console.log('creating tables');
     db.serialize(function () {
 
         db.run("DROP TABLE users", function (err) { if (err) { } });
@@ -339,8 +337,6 @@ function selectUser(uid) {
                 if (err) {
                     reject(err);
                 }
-
-                console.log(command);
                 resolve(rows);
             });
         });
@@ -498,6 +494,7 @@ function selectTweetsFor(uid) {
         (rows) => {
             // Process them.
             var outputData = {};
+            var count = 0;
 
             for (thisRow of rows) {
                 var aTweet = Object.create(tweet);
@@ -507,8 +504,9 @@ function selectTweetsFor(uid) {
                 aTweet.tid = thisRow.TID;
                 aTweet.ts = thisRow.TS;
 
-                outputData[aTweet.tid] = aTweet;
-                console.log('The output of row:  ' + outputData[aTweet.tid].author + ": " + outputData[aTweet.tid].message);
+                outputData[count] = aTweet;
+                console.log('The output of row:  ' + outputData[count].author + ": " + outputData[count].message);
+				count++;
             }
             return outputData;
         },
@@ -612,7 +610,8 @@ function deleteReply(repid) {
         (rows) => {
             // Process them.
             var outputData = {};
-            for (thisRow of rows) {
+             var count = 0;
+           for (thisRow of rows) {
                 var aReply = Object.create(reply);
 
                 aReply.original = thisRow.TID;
@@ -621,8 +620,9 @@ function deleteReply(repid) {
                 aReply.author = thisRow.AUTHOR;
                 aReply.ts = thisRow.TS;
 
-                outputData[aReply.tid] = aReply;
-                console.log('The output of row:  ' + outputData[aReply.tid].author + ": " + outputData[aReply.tid].message);
+                outputData[count] = aReply;
+                console.log('The output of row:  ' + outputData[count].author + ": " + outputData[count].message);
+count++;
             }
             return outputData;
         },
@@ -743,16 +743,17 @@ function selectFollowing(follow) {
         (rows) => {
             // Process them.
             var outputData = {};
-
+			var count = 0;
             for (thisRow of rows) {
                 var aFollow = Object.create(follow);
 
                 aFollow.leader = thisRow.LEADER;
                 aFollow.follower = thisRow.FOLLOWER;
 
-                outputData[aFollow.leader] = aFollow;
-                console.log('The output of row:  ' + outputData.AUTHOR);
-            }
+                outputData[count] = aFollow;
+				count++;
+                 console.log('The output of row:  ' + outputData.AUTHOR);
+           }
             return outputData;
         },
         (err) => {
