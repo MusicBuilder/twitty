@@ -29,6 +29,7 @@ exports.updateReply = updateReply;
 exports.deleteReply = deleteReply;
 exports.selectRepliesForTweet = selectRepliesForTweet;
 exports.selectRepliesForUser = selectRepliesForUser;
+exports.selectTweetsFor = selectTweetsFor;
 
 var tweet = {
     author: '',
@@ -442,28 +443,28 @@ function selectAllTweets() {
         );
     return p;
 }
+
 function selectTweetsFor(uid) {
     var p;
     p = new Promise(function (resolve, reject) {
-            db.serialize(function () {
-
         var quid = asMyQuote(uid);
-        db.serialize(function (err) {
+
+        db.serialize(function () {
             var command = "SELECT * FROM tweets WHERE AUTHOR=" + quid;
             db.all(command, function (err, row) {
                 if (err) {
                     reject(err);
                 }
+
                 console.log(command);
                 resolve(row);
             });
         });
-            });
     }).then(
         (rows) => {
             // Process them.
             var outputData = {};
-            var count = 0;
+
             for (thisRow of rows) {
                 var aTweet = Object.create(tweet);
 
@@ -472,9 +473,8 @@ function selectTweetsFor(uid) {
                 aTweet.tid = thisRow.TID;
                 aTweet.ts = thisRow.TS;
 
-                outputData[count] = aTweet;
-                console.log('The output of row:  ' + outputData[count].author + ": " + outputData[count].message);
-                count++;
+                outputData[aTweet.tid] = aTweet;
+                console.log('The output of row:  ' + outputData[aTweet.tid].author + ": " + outputData[aTweet.tid].message);
             }
 
             // console.log(outputData);       
@@ -484,7 +484,8 @@ function selectTweetsFor(uid) {
             console.log('Error getting tweets');
             return {};
         }
-        );
+    );
+
     return p;
 }
 

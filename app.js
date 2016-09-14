@@ -33,6 +33,16 @@ app.post('/login', function(req, res) {
     );
 });
 
+app.get('/tweets/:id', function(req, res) {
+    var p = db.selectTweetsFor(req.params.id);
+
+    p.then(
+        (tweets) => {
+            res.status(200).send(tweets);
+        }
+    );
+});
+
 app.listen(3000, function () {
     console.log('Example app listening on port 3000!');
 });
